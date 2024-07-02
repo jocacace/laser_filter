@@ -2,6 +2,24 @@
 
 import rospy
 from sensor_msgs.msg import LaserScan
+import math
+
+def calculate_min_range(angle):
+    # Angle limit
+    front_angle_limit = math.pi / 4
+    rear_angle_limit = (math.pi * 2) - math.pi / 4
+
+    # print('front_angle_limit',front_angle_limit)
+    # print('rear_angle_limit',rear_angle_limit)
+
+    # Minimum ranges
+    front_min_range = 0.20      # Minimum front range 
+    rear_min_range = 0.1        # Minimum rear range
+
+    if front_angle_limit < angle < rear_angle_limit:
+        return rear_min_range
+    else:
+        return front_min_range
 
 def callback(scan):
     
@@ -16,10 +34,25 @@ def callback(scan):
     filtered_scan.range_max = scan.range_max
 
     # Set a threshold for the minimum acceptable range
-    min_range_threshold = 0.25  # meters
+    # min_range_threshold = 0.25  # meters
 
     # Filter out ranges that are too close to the sensor
-    filtered_scan.ranges = [r if r >= min_range_threshold else float('inf') for r in scan.ranges]
+    # filtered_scan.ranges = [r if r >= min_range_threshold else float('inf') for r in scan.ranges]
+    
+    # Filter out ranges that are too close to the sensor
+    filtered_scan.ranges = []
+    for i, r in enumerate(scan.ranges):
+        angle = scan.angle_min + i * scan.angle_increment
+        min_range_threshold = calculate_min_range(angle)
+        if r >= min_range_threshold:
+            filtered_scan.ranges.append(r)
+        else:
+            filtered_scan.ranges.append(float('inf'))
+        
+        # print('angle',angle)
+        # print('min range',min_range_threshold)
+    
+    
     filtered_scan.intensities = scan.intensities
 
     pub.publish(filtered_scan)
