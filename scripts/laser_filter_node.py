@@ -3,6 +3,7 @@
 import rospy
 from sensor_msgs.msg import LaserScan
 import math
+import numpy as np
 
 def calculate_min_range(angle):
     # Angle limit
@@ -14,7 +15,7 @@ def calculate_min_range(angle):
 
     # Minimum ranges
     front_min_range = 0.20      # Minimum front range 
-    rear_min_range = 0.1        # Minimum rear range
+    rear_min_range = 0.05        # Minimum rear range
 
     if front_angle_limit < angle < rear_angle_limit:
         return rear_min_range
@@ -41,21 +42,35 @@ def callback(scan):
     
     # Filter out ranges that are too close to the sensor
     filtered_scan.ranges = []
+
+    outliser_filtered = filtered_scan
     for i, r in enumerate(scan.ranges):
         angle = scan.angle_min + i * scan.angle_increment
         min_range_threshold = calculate_min_range(angle)
         if r >= min_range_threshold:
             filtered_scan.ranges.append(r)
+            #ranges.append(r)
         else:
             filtered_scan.ranges.append(float('inf'))
+            #ranges.append(float('inf'))
         
         # print('angle',angle)
         # print('min range',min_range_threshold)
     
-    
-    filtered_scan.intensities = scan.intensities
+    # Filter out non-numeric values (e.g., NaNs)
+    ranges = np.array ( filtered_scan.ranges )
+    ranges = ranges[np.isfinite(filtered_scan.ranges)]
+    # Statistical filter: remove points outside 1 standard deviation
+    mean = np.mean(ranges)
+    std_dev = np.std(ranges)
 
-    pub.publish(filtered_scan)
+    std_dev  = std_dev*1.6
+    filtered_ranges = [r if (mean - std_dev <= r <= mean + std_dev) else float('inf') for r in filtered_scan.ranges]
+    outliser_filtered.ranges = filtered_ranges
+    
+    outliser_filtered.intensities = scan.intensities
+
+    pub.publish(outliser_filtered)
     
 if __name__ == '__main__':
     rospy.init_node('laser_filter_node', anonymous=True)
