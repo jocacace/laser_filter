@@ -14,7 +14,7 @@ def calculate_min_range(angle):
     # print('rear_angle_limit',rear_angle_limit)
 
     # Minimum ranges
-    front_min_range = 0.20      # Minimum front range 
+    front_min_range = 0.25      # Minimum front range 
     rear_min_range = 0.05        # Minimum rear range
 
     if front_angle_limit < angle < rear_angle_limit:
