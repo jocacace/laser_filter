@@ -7,15 +7,15 @@ import numpy as np
 
 def calculate_min_range(angle):
     # Angle limit
-    front_angle_limit = math.pi / 4
-    rear_angle_limit = (math.pi * 2) - math.pi / 4
+    front_angle_limit = math.pi + math.pi / 6
+    rear_angle_limit = (math.pi * 2) - math.pi / 2
 
     # print('front_angle_limit',front_angle_limit)
     # print('rear_angle_limit',rear_angle_limit)
 
     # Minimum ranges
-    front_min_range = 0.25      # Minimum front range 
-    rear_min_range = 0.05        # Minimum rear range
+    front_min_range = 0.20      # Minimum front range 
+    rear_min_range = 0.03        # Minimum rear range
 
     if front_angle_limit < angle < rear_angle_limit:
         return rear_min_range
