@@ -5,23 +5,8 @@ from sensor_msgs.msg import LaserScan
 import math
 import numpy as np
 
-def calculate_min_range(angle):
 
-    # Angle limit
-    front_angle_limit = math.pi + math.pi / 6
-    rear_angle_limit = (math.pi * 2) - math.pi / 2
 
-    # print('front_angle_limit',front_angle_limit)
-    # print('rear_angle_limit',rear_angle_limit)
-
-    # Minimum ranges
-    front_min_range = 0.20      # Minimum front range 
-    rear_min_range = 0.03        # Minimum rear range
-
-    if front_angle_limit < angle < rear_angle_limit:
-        return rear_min_range
-    else:
-        return front_min_range
 
 def filter_outliers(distances, threshold_factor=1.5):
     """
@@ -54,16 +39,23 @@ def callback(scan):
     max_range = 2.0
 
     outliser_filtered = filtered_scan
-    for i, r in enumerate(scan.ranges):
+    for i, r in enumerate(scan.ranges): 
+
         angle = scan.angle_min + i * scan.angle_increment
-        min_range_threshold = calculate_min_range(angle)
-
-        if r >= min_range_threshold:
-            filtered_scan.ranges.append(r)
-        else:
-            filtered_scan.ranges.append(float('inf'))
         
+        if ( angle < math.pi / 2.0 or angle > 4.7 ):
+            if r > 0.25: 
+                filtered_scan.ranges.append(r)
+            else:
+                filtered_scan.ranges.append(float('inf'))
+        else: 
+            if r > 0.1:
+                filtered_scan.ranges.append(r)
+            else:
+                filtered_scan.ranges.append(float('inf'))
 
+    
+    
     ranges = np.array ( filtered_scan.ranges )
     ranges = ranges[np.isfinite(filtered_scan.ranges)]
 
@@ -98,7 +90,7 @@ def callback(scan):
     # Create a new range considering the distance from the centroid
     distances_to_centroid = []
     valid_ranges = []
-    for i, r in enumerate(scan.ranges):
+    for i, r in enumerate(filtered_scan.ranges):
         if r > 0 and r < float('inf'):  # Punti validi
             angle = scan.angle_min + i * scan.angle_increment
             x = r * math.cos(angle)
@@ -117,10 +109,11 @@ def callback(scan):
             filtered_ranges.append(r)
         else:
             filtered_ranges.append(0.0)
-
+    
     outliser_filtered.ranges = filtered_ranges
     outliser_filtered.intensities = scan.intensities
     pub.publish(outliser_filtered)
+    #pub.publish( filtered_scan )  
     
 if __name__ == '__main__':
     rospy.init_node('laser_filter_node', anonymous=True)
