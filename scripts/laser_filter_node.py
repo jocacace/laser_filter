@@ -6,21 +6,6 @@ import math
 import numpy as np
 
 
-
-
-def filter_outliers(distances, threshold_factor=1.5):
-    """
-    Filtra gli outlier vicini usando la distanza media e uno scarto basato su una soglia.
-    """
-    mean_distance = np.mean(distances)
-    std_distance = np.std(distances)
-    
-    lower_bound = mean_distance - threshold_factor * std_distance
-
-    # Mantieni solo i punti che sono sopra il limite inferiore (rimuovi quelli troppo vicini)
-    return [d for d in distances if d >= lower_bound]
-
-
 def callback(scan):
     
     filtered_scan = LaserScan()
@@ -54,10 +39,13 @@ def callback(scan):
             else:
                 filtered_scan.ranges.append(float('inf'))
 
-    
+    #outliser_filtered.ranges = filtered_ranges
+    #outliser_filtered.intensities = scan.intensities
+    #pub.publish(filtered_scan)
+
     
     ranges = np.array ( filtered_scan.ranges )
-    ranges = ranges[np.isfinite(filtered_scan.ranges)]
+    #ranges = ranges[np.isfinite(filtered_scan.ranges)]
 
     x_sum = 0.0
     y_sum = 0.0
@@ -85,7 +73,7 @@ def callback(scan):
         return
 
 
-    max_radius = 2.0
+    max_radius = 4.0
 
     # Create a new range considering the distance from the centroid
     distances_to_centroid = []
@@ -100,23 +88,27 @@ def callback(scan):
             distance_to_centroid = math.sqrt((x - x_centroid)**2 + (y - y_centroid)**2)
             distances_to_centroid.append(distance_to_centroid)
             valid_ranges.append(r)
-
-    # Filtra gli outlier vicini
-    filtered_distances = filter_outliers(distances_to_centroid, threshold_factor)
+        else:
+            valid_ranges.append(0.0)
+            distances_to_centroid.append(0.0)
+        
+    
     filtered_ranges = []
     for i, r in enumerate(valid_ranges):
-        if distances_to_centroid[i] in filtered_distances and distances_to_centroid[i] <= max_radius:
-            filtered_ranges.append(r)
+    
+        if distances_to_centroid[i] <= max_radius:
+            filtered_ranges.append(valid_ranges[i])
         else:
             filtered_ranges.append(0.0)
     
     outliser_filtered.ranges = filtered_ranges
     outliser_filtered.intensities = scan.intensities
     pub.publish(outliser_filtered)
-    #pub.publish( filtered_scan )  
+    
+    
     
 if __name__ == '__main__':
     rospy.init_node('laser_filter_node', anonymous=True)
     rospy.Subscriber('/scan', LaserScan, callback)
-    pub = rospy.Publisher('/scan/filtered', LaserScan, queue_size=10)
+    pub = rospy.Publisher('/scan/filtered/bags', LaserScan, queue_size=10)
     rospy.spin()
